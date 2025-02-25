@@ -10,14 +10,15 @@ const app = express();
 
 // Configuração do CORS para permitir requisições do Vercel e outras origens
 app.use(cors({
-  origin: ['https://barber-gr.vercel.app', 'http://localhost:3000'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  origin: ['http://localhost:5173'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 
-// Middleware para processar JSON e adicionar headers de segurança
 app.use(express.json());
+
+// Middleware para processar JSON e adicionar headers de segurança
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH');
@@ -110,7 +111,11 @@ app.get('/api/appointments', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
+// Remover este primeiro app.listen
+// const PORT = process.env.PORT || 3000;
+// app.listen(PORT, () => {
+//   console.log(`Server running on port ${PORT}`);
+// });
 
 // Inicialização do banco de dados
 const initDatabase = async () => {
@@ -138,6 +143,8 @@ const initDatabase = async () => {
       console.log('Barbeiros iniciais adicionados com sucesso!');
     }
 
+    // Manter apenas este app.listen
+    const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
