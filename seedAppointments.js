@@ -9,10 +9,13 @@ const seedAppointments = async () => {
     // Remove todos os registros da tabela "Appointments"
     await Appointment.destroy({ where: {}, truncate: true });
 
-    const specificDates = [
-      '2024-02-17', '2024-02-18', '2024-02-19',
-      '2024-02-20', '2024-02-21', '2024-02-22', '2024-02-23'
-    ];
+    const specificDates = [];
+    const today = new Date();
+    for (let i = -7; i <= 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      specificDates.push(date.toISOString().split('T')[0]);
+    }
 
     const services = [
       { name: 'Corte Tradicional', price: 45 },
@@ -21,32 +24,46 @@ const seedAppointments = async () => {
       { name: 'Reflexo', price: 80 },
       { name: 'Nevou', price: 90 }
     ];
-    let idCounter = 1;
-    // Cria registros de appointment para cada data específica
-    const appointments = specificDates.flatMap(date => {
-      // Calcula a quantidade de agendamentos com base no dia da semana
-      const dayOfWeek = new Date(date).getDay();
-      const appointmentCount = (dayOfWeek === 0 || dayOfWeek === 6) ? 
-        Math.floor(Math.random() * 4) + 5 : 
-        Math.floor(Math.random() * 4) + 2;
 
-      return Array.from({ length: appointmentCount }, () => {
-        // Seleciona um serviço aleatório
+    const clientNames = [
+      'João', 'Pedro', 'Marcos', 'Matheus', 'Vini', 'Juninho', 'Mari', 'Felipe', 'Julia', 'Gabrielle'
+    ];
+
+    let idCounter = 1;
+    const appointments = [];
+
+    specificDates.forEach(date => {
+      for (let i = 0; i < 50; i++) {
         const service = services[Math.floor(Math.random() * services.length)];
-        // Gera um ID único combinando um contador incremental com timestamp
         const uniqueId = `${Date.now()}-${idCounter++}`;
-        return {
+        const clientName = clientNames[Math.floor(Math.random() * clientNames.length)];
+        const time = `${Math.floor(Math.random() * 8) + 9}:00`;
+        const status = Math.random() > 0.3 ? 'completed' : 'pending';
+
+        appointments.push({
           id: uniqueId,
-          clientName: `Cliente ${Math.floor(Math.random() * 100) + 1}`,
+          clientName: clientName,
           serviceName: service.name,
           date: date,
-          time: `${Math.floor(Math.random() * 8) + 9}:00`,
-          status: Math.random() > 0.3 ? 'completed' : 'pending',
-          barberId: Math.random() > 0.5 ? '01' : '02',
-          barberName: Math.random() > 0.5 ? 'Maicon' : 'Brendon',
+          time: time,
+          status: status,
+          barberId: '01',
+          barberName: 'Maicon',
           price: service.price
-        };
-      });
+        });
+
+        appointments.push({
+          id: uniqueId,
+          clientName: clientName,
+          serviceName: service.name,
+          date: date,
+          time: time,
+          status: status,
+          barberId: '02',
+          barberName: 'Brendon',
+          price: service.price
+        });
+      }
     });
 
     // Insere os registros no banco de dados e valida os dados
