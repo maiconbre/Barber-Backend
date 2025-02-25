@@ -8,8 +8,22 @@ const Appointment = require('./models/Appointment');
 
 const app = express();
 
-app.use(cors());
+// Configuração do CORS para permitir requisições do Vercel e outras origens
+app.use(cors({
+  origin: ['https://barber-gr.vercel.app', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
+// Middleware para processar JSON e adicionar headers de segurança
 app.use(express.json());
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  next();
+});
 
 // Nova rota para listar barbeiros
 app.get('/api/barbers', async (req, res) => {
