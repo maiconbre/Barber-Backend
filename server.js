@@ -10,7 +10,7 @@ const app = express();
 
 // Configuração do CORS para permitir requisições do Vercel e outras origens
 app.use(cors({
-  origin: ['https://barber-gr.vercel.app', 'http://localhost:3000'],
+  origin: ['https://barber-gr.vercel.app', 'http://localhost:5173'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
