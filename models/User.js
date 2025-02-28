@@ -1,28 +1,28 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('./database');
 
-const Appointment = sequelize.define('Appointment', {
+const User = sequelize.define('User', {
   id: {
     type: DataTypes.STRING,
     primaryKey: true
   },
-  barberId: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  clientName: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  date: {
-    type: DataTypes.DATE,
-    allowNull: false
-  },
-  status: {
+  username: {
     type: DataTypes.STRING,
     allowNull: false,
-    defaultValue: 'pending'
+    unique: true
+  },
+  password: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  role: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false
   }
 });
 
-module.exports = Appointment;
+module.exports = User;
