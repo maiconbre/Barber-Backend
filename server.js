@@ -5,6 +5,10 @@ require('dotenv').config();
 const sequelize = require('./models/database');
 const Barber = require('./models/Barber');
 const Appointment = require('./models/Appointment');
+const User = require('./models/User');
+const authRoutes = require('./routes/authRoutes');
+const authController = require('./controllers/authController');
+const { protect, barber } = require('./middleware/authMiddleware');
 
 const app = express();
 
@@ -24,6 +28,9 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   next();
 });
+
+// Rotas de autenticação
+app.use('/api/auth', authRoutes);
 
 // Nova rota para listar barbeiros
 app.get('/api/barbers', async (req, res) => {
@@ -60,8 +67,8 @@ app.post('/api/appointments', async (req, res) => {
     });
   }
 });
+
 // Atualizar status do agendamento
-// Adicione estas rotas no servidor
 app.patch('/api/appointments/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -94,6 +101,7 @@ app.delete('/api/appointments/:id', async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
 // Rota para listar agendamentos
 app.get('/api/appointments', async (req, res) => {
   try {
@@ -115,7 +123,9 @@ const PORT = process.env.PORT || 3000;
 // Inicialização do banco de dados
 const initDatabase = async () => {
   try {
-    await sequelize.sync();
+    // Sincronizar o banco de dados sem forçar a recriação das tabelas
+    await sequelize.sync({ force: false });
+    console.log('Banco de dados sincronizado');
     
     // Verificar se já existem barbeiros
     const barbersCount = await Barber.count();
@@ -136,6 +146,14 @@ const initDatabase = async () => {
         }
       ]);
       console.log('Barbeiros iniciais adicionados com sucesso!');
+    }
+
+    // Seed initial users
+    const usersCount = await User.count();
+    if (usersCount === 0) {
+      await authController.seedUsers();
+    } else {
+      console.log(`Já existem ${usersCount} usuários no banco de dados.`);
     }
 
     app.listen(PORT, () => {

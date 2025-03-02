@@ -1,5 +1,5 @@
-const Appointment = require('./models/Appointment');
-const sequelize = require('./models/database');
+const Appointment = require('../models/Appointment');
+const sequelize = require('../models/database');
 
 const seedAppointments = async () => {
   try {
