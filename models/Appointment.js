@@ -6,23 +6,38 @@ const Appointment = sequelize.define('Appointment', {
     type: DataTypes.STRING,
     primaryKey: true
   },
-  barberId: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
   clientName: {
     type: DataTypes.STRING,
     allowNull: false
   },
+  serviceName: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
   date: {
-    type: DataTypes.DATE,
+    type: DataTypes.DATEONLY,
+    allowNull: false
+  },
+  time: {
+    type: DataTypes.STRING,
     allowNull: false
   },
   status: {
     type: DataTypes.STRING,
-    allowNull: false,
     defaultValue: 'pending'
+  },
+  barberId: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  barberName: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  price: {
+    type: DataTypes.FLOAT,
+    allowNull: false
   }
 });
 
-module.exports = Appointment;
+module.exports = Appointment;  // Exportação correta

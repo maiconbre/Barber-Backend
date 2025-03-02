@@ -5,146 +5,33 @@ require('dotenv').config();
 const sequelize = require('./models/database');
 const Barber = require('./models/Barber');
 const Appointment = require('./models/Appointment');
-const jwt = require('jsonwebtoken');
 const User = require('./models/User');
+const authRoutes = require('./routes/authRoutes');
+const authController = require('./controllers/authController');
+const { protect, barber } = require('./middleware/authMiddleware');
 
 const app = express();
 
-// Configuração CORS
+// Configuração do CORS para permitir requisições do Vercel e outras origens
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  origin: ['https://barber-gr.vercel.app', 'http://localhost:5173'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 
+// Middleware para processar JSON e adicionar headers de segurança
 app.use(express.json());
-
-// Middleware para headers de segurança
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   next();
 });
-// Debug middleware for token
-app.use((req, res, next) => {
-  console.log('Rota acessada:', req.path);
-  console.log('Headers:', req.headers);
-  console.log('Auth Header:', req.header('Authorization'));
-  next();
-});
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
 
-    const mockUsers = [
-      {
-        id: '1',
-        username: 'admin',
-        password: '123456',
-        role: 'admin',
-        name: 'Admin'
-      },
-      {
-        id: '2',
-        username: 'maicon',
-        password: '123456',
-        role: 'barber',
-        name: 'Maicon'
-      },
-      {
-        id: '3',
-        username: 'brendon',
-        password: '123456',
-        role: 'barber',
-        name: 'Brendon'
-      }
-    ];
+// Rotas de autenticação
+app.use('/api/auth', authRoutes);
 
-    const user = mockUsers.find(u => u.username === username && u.password === password);
-
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Usuário ou senha inválidos'
-      });
-    }
-
-    const { password: _, ...userWithoutPassword } = user;
-    // Debug middleware
-    app.use((req, res, next) => {
-      console.log('=== Debug Token ===');
-      console.log('Path:', req.path);
-      console.log('Authorization Header:', req.headers.authorization);
-      console.log('=================');
-      next();
-    });
-    const token = jwt.sign(
-      { userId: user.id, username: user.username, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '30m' }
-    );
-
-    res.json({
-      success: true,
-      data: {
-        user: userWithoutPassword,
-        token
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-// Rota para verificar token
-app.get('/api/auth/verify', async (req, res) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
-
-  if (!token) {
-    return res.status(401).json({
-      success: false,
-      message: 'Token não fornecido'
-    });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    res.json({
-      success: true,
-      data: {
-        id: decoded.userId,
-        username: decoded.username,
-        role: decoded.role,
-        name: decoded.name
-      }
-    });
-  } catch (error) {
-    res.status(401).json({
-      success: false,
-      message: 'Token inválido'
-    });
-  }
-});
-// Rota para criar barbeiros
-app.post('/api/barbers', async (req, res) => {
-  try {
-    const barber = await Barber.createBarber(req.body);
-    res.status(201).json({
-      success: true,
-      data: barber
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
 // Nova rota para listar barbeiros
 app.get('/api/barbers', async (req, res) => {
   try {
@@ -180,6 +67,8 @@ app.post('/api/appointments', async (req, res) => {
     });
   }
 });
+
+// Atualizar status do agendamento
 app.patch('/api/appointments/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -212,6 +101,7 @@ app.delete('/api/appointments/:id', async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
 // Rota para listar agendamentos
 app.get('/api/appointments', async (req, res) => {
   try {
@@ -228,11 +118,14 @@ app.get('/api/appointments', async (req, res) => {
   }
 });
 
+const PORT = process.env.PORT || 3000;
 
 // Inicialização do banco de dados
 const initDatabase = async () => {
   try {
-    await sequelize.sync();
+    // Sincronizar o banco de dados sem forçar a recriação das tabelas
+    await sequelize.sync({ force: false });
+    console.log('Banco de dados sincronizado');
     
     // Verificar se já existem barbeiros
     const barbersCount = await Barber.count();
@@ -255,55 +148,20 @@ const initDatabase = async () => {
       console.log('Barbeiros iniciais adicionados com sucesso!');
     }
 
-    const PORT = process.env.PORT || 3000;
+    // Seed initial users
+    const usersCount = await User.count();
+    if (usersCount === 0) {
+      await authController.seedUsers();
+    } else {
+      console.log(`Já existem ${usersCount} usuários no banco de dados.`);
+    }
 
-    // Verificar se a porta está em uso
-    const server = app.listen(PORT)
-      .on('error', (err) => {
-        if (err.code === 'EADDRINUSE') {
-          console.log(`A porta ${PORT} está em uso. Tentando encerrar o processo...`);
-          require('child_process').exec(`npx kill-port ${PORT}`, (error) => {
-            if (error) {
-              console.error('Erro ao tentar liberar a porta:', error);
-              process.exit(1);
-            }
-            console.log(`Porta ${PORT} liberada. Reiniciando o servidor...`);
-            server.listen(PORT, () => {
-              console.log(`Servidor rodando na porta ${PORT}`);
-            });
-          });
-        } else {
-          console.error('Erro ao iniciar o servidor:', err);
-          process.exit(1);
-        }
-      })
-      .on('listening', () => {
-        console.log(`Servidor rodando na porta ${PORT}`);
-      });
-
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
   } catch (error) {
     console.error('Erro ao inicializar o banco de dados:', error);
   }
 };
-
-// Rota para obter slots reservados
-app.get('/api/appointments', async (req, res) => {
-  try {
-    const bookedSlots = await AvailableSlots.findAll({
-      where: {
-        is_booked: true
-      }
-    });
-    res.json({
-      success: true,
-      data: bookedSlots
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
 
 initDatabase();

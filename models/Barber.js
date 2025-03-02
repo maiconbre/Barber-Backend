@@ -20,19 +20,4 @@ const Barber = sequelize.define('Barber', {
   }
 });
 
-// Static method to create a new barber
-Barber.createBarber = async function(barberData) {
-  try {
-    const barber = await this.create({
-      id: barberData.id || Date.now().toString(),
-      name: barberData.name,
-      whatsapp: barberData.whatsapp,
-      pix: barberData.pix
-    });
-    return barber;
-  } catch (error) {
-    throw new Error(`Error creating barber: ${error.message}`);
-  }
-};
-
 module.exports = Barber;
