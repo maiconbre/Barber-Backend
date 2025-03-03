@@ -45,17 +45,28 @@ const User = sequelize.define('User', {
 });
 
 // Instance method to check password
-User.prototype.comparePassword = async function(candidatePassword) {
-  console.log('Comparando senhas:');
-  console.log('- Senha fornecida:', candidatePassword);
-  console.log('- Senha armazenada (hash):', this.password.substring(0, 10) + '...');
-  
+User.prototype.comparePassword = async function (candidatePassword) {
   try {
+    console.log('=== Debug de Autenticação ===');
+    console.log('Usuário:', this.username);
+    console.log('Senha fornecida:', candidatePassword);
+    console.log('Hash armazenado:', this.password);
+
+    // Verificar se a senha está vazia ou indefinida
+    if (!candidatePassword) {
+      console.log('ERRO: Senha vazia ou indefinida');
+      return false;
+    }
+
+    // Adicionar log do processo de comparação
     const isMatch = await bcrypt.compare(candidatePassword, this.password);
-    console.log('Resultado da comparação:', isMatch ? 'Corresponde' : 'Não corresponde');
+    console.log('Resultado da comparação:', isMatch);
+    console.log('=== Fim do Debug ===');
+    
     return isMatch;
   } catch (error) {
-    console.error('Erro ao comparar senhas:', error);
+    console.error('Erro na comparação de senha:', error);
+    console.log('Stack trace:', error.stack);
     return false;
   }
 };
