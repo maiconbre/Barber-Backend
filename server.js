@@ -7,6 +7,7 @@ const Barber = require('./models/Barber');
 const Appointment = require('./models/Appointment');
 const User = require('./models/User');
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/users');
 const authController = require('./controllers/authController');
 const { protect, barber } = require('./middleware/authMiddleware');
 
@@ -31,6 +32,9 @@ app.use((req, res, next) => {
 
 // Rotas de autenticação
 app.use('/api/auth', authRoutes);
+
+// Rotas de usuário
+app.use('/api/users', userRoutes);
 
 // Nova rota para listar barbeiros
 app.get('/api/barbers', async (req, res) => {
