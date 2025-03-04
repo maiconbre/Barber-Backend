@@ -199,22 +199,6 @@ exports.seedUsers = async () => {
         name: 'Admin'
       });
       
-      await User.create({
-        id: '2',
-        username: 'maicon@grbarber.com',
-        password: '123456',
-        role: 'barber',
-        name: 'Maicon'
-      });
-      
-      await User.create({
-        id: '3',
-        username: 'brendon@grbarber.com',
-        password: '123456',
-        role: 'barber',
-        name: 'Brendon'
-      });
-      
       console.log('Usuários iniciais criados com sucesso');
     } else {
       console.log('Usuários já existem, pulando seed');
