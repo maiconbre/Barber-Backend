@@ -1,14 +1,17 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const rateLimit = require('express-rate-limit');
 
 const sequelize = require('./models/database');
 const Barber = require('./models/Barber');
 const Appointment = require('./models/Appointment');
 const User = require('./models/User');
+const Comment = require('./models/Comment');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/users');
 const barberRoutes = require('./routes/barberRoutes');
+const commentRoutes = require('./routes/commentRoutes');
 const authController = require('./controllers/authController');
 const { protect, barber } = require('./middleware/authMiddleware');
 
@@ -39,6 +42,9 @@ app.use('/api/users', userRoutes);
 
 // Rotas de barbeiro
 app.use('/api/barbers', barberRoutes);
+
+// Rotas de comentários
+app.use('/api/comments', commentRoutes);
 
 // Nova rota para listar barbeiros
 app.get('/api/barbers', async (req, res) => {
@@ -173,3 +179,21 @@ const initDatabase = async () => {
 };
 
 initDatabase();
+
+// Importar o middleware de rate limiting personalizado
+const { createRateLimiter } = require('./middleware/rateLimitMiddleware');
+
+// Criar o middleware de rate limiting com configurações personalizadas
+const apiLimiter = createRateLimiter({
+  windowMs: 5000, // 5 segundos
+  maxRequests: 3, // máximo de 3 requisições
+  message: {
+    success: false,
+    message: 'Muitas requisições. Por favor, aguarde 5 segundos antes de tentar novamente.'
+  }
+});
+
+// Aplicar rate limiter em rotas específicas
+app.use('/api/comments', apiLimiter);
+app.use('/api/appointments', apiLimiter);
+app.use('/api/barbers', apiLimiter);
