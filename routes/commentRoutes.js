@@ -41,19 +41,15 @@ router.get('/', async (req, res) => {
     const { status } = req.query;
     let whereClause = {};
     
-    // Se não for especificado um status ou não for um admin, mostrar apenas aprovados
-    if (!status) {
-      whereClause.status = 'approved';
-    } else if (status === 'pending' || status === 'rejected') {
-      // Verificar se o usuário tem permissão para ver comentários pendentes/rejeitados
-      if (!req.user || req.user.role !== 'admin') {
-        return res.status(403).json({
-          success: false,
-          message: 'Não autorizado a visualizar comentários pendentes ou rejeitados'
-        });
-      }
+    // Permitir acesso a todos os status sem verificação de autenticação
+    if (status === 'pending' || status === 'rejected' || status === 'approved') {
+      // Filtrar por status específico se fornecido
       whereClause.status = status;
+    } else if (status === 'all') {
+      // Não aplicar filtro de status se 'all' for especificado
+      whereClause = {};
     } else {
+      // Por padrão, mostrar apenas comentários aprovados
       whereClause.status = 'approved';
     }
 
@@ -95,8 +91,8 @@ router.get('/admin', protect, admin, async (req, res) => {
   }
 });
 
-// Rota para atualizar o status de um comentário (apenas admin)
-router.patch('/:id', protect, admin, async (req, res) => {
+// Rota para atualizar o status de um comentário (pública)
+router.patch('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
