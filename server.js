@@ -46,6 +46,7 @@ app.use('/api/barbers', barberRoutes);
 // Rotas de comentários
 app.use('/api/comments', commentRoutes);
 
+
 // Nova rota para listar barbeiros
 app.get('/api/barbers', async (req, res) => {
   try {
@@ -61,6 +62,33 @@ app.get('/api/barbers', async (req, res) => {
     });
   }
 });
+
+// Nova rota para atualizar barbeiros
+
+app.patch('/api/barbers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const barber = await Barber.findByPk(id);
+    if (!barber) {
+      return res.status(404).json({
+        success: false,
+        message: 'Barbeiro não encontrado'
+      });
+    }
+    const updatedBarber = await barber.update(req.body);
+    res.json({
+      success: true,
+      data: updatedBarber
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
+);
+
 
 // Rota para criar agendamentos
 app.post('/api/appointments', async (req, res) => {
@@ -141,26 +169,6 @@ const initDatabase = async () => {
     await sequelize.sync({ force: false });
     console.log('Banco de dados sincronizado');
     
-    // Verificar se já existem barbeiros
-    const barbersCount = await Barber.count();
-    if (barbersCount === 0) {
-      // Adicionar os barbeiros iniciais
-      await Barber.bulkCreate([
-        {
-          id: '01',
-          name: 'Maicon',
-          whatsapp: '21997764645',
-          pix: '21997761646'
-        },
-        {
-          id: '02',
-          name: 'Brendon',
-          whatsapp: '2199774658',
-          pix: '21554875965'
-        }
-      ]);
-      console.log('Barbeiros iniciais adicionados com sucesso!');
-    }
 
     // Seed initial users
     const usersCount = await User.count();
