@@ -1,6 +1,5 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-const { Op } = require('sequelize');
 
 // Helper function to generate JWT token
 const generateToken = (user) => {
@@ -17,7 +16,7 @@ exports.login = async (req, res) => {
     console.log('Corpo da requisição recebido:', req.body);
     
     // Extrair username/username e password do corpo da requisição
-    // Aceita tanto {username, password} quanto {username, password}
+    // Aceita {username, password} 
     const username = req.body.username ;
     const password = req.body.password;
     
@@ -31,10 +30,10 @@ exports.login = async (req, res) => {
     
     console.log('Tentativa de login com:', { username });
     
-    // Buscar usuário pelo username/username
+    // Buscar usuário pelo username/
     const user = await User.findOne({
       where: {
-        username: username  // Busca pelo campo username usando o valor de username/username
+        username: username  // Busca pelo campo username usando o valor de 
       }
     });
     
