@@ -1,6 +1,7 @@
 const express = require('express');
 const authController = require('../controllers/authController');
 const { protect, admin } = require('../middleware/authMiddleware');
+const User = require('../models/User'); // Adicionar esta importação no topo
 
 const router = express.Router();
 
@@ -11,17 +12,13 @@ router.post('/validate-token', authController.validateToken);
 // Protected routes
 router.post('/register', protect, admin, authController.register);
 
-
-
 // rota para verificar a senha do admin
 router.post('/verify-admin', async (req, res) => {
   try {
     const { password } = req.body;
 
-    // Buscar usuário admin (assumindo que o ID do admin é '01')
     const admin = await User.findOne({
       where: {
-        id: '01',
         role: 'admin'
       }
     });
@@ -47,9 +44,11 @@ router.post('/verify-admin', async (req, res) => {
       message: 'Senha verificada com sucesso'
     });
   } catch (error) {
+    console.error('Erro ao verificar senha:', error);
     res.status(500).json({
       success: false,
-      message: 'Erro ao verificar senha'
+      message: 'Erro ao verificar senha',
+      error: error.message
     });
   }
 });
