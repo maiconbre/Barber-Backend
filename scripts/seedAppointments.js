@@ -11,7 +11,7 @@ const seedAppointments = async () => {
 
     const specificDates = [];
     const today = new Date();
-    for (let i = -7; i <= 7; i++) {
+    for (let i = -15; i <= 15; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       specificDates.push(date.toISOString().split('T')[0]);
@@ -26,43 +26,60 @@ const seedAppointments = async () => {
     ];
 
     const clientNames = [
-      'João', 'Pedro', 'Marcos', 'Matheus', 'Vini', 'Juninho', 'Mari', 'Felipe', 'Julia', 'Gabrielle'
+      'João', 'Pedro', 'Marcos', 'Matheus', 'Vini', 'Juninho', 'Mari', 'Felipe', 'Julia', 'Gabrielle', 'Larissa', 'Lucas', 'Mariana', 'Rafaela', 'Rafael', 'Gustavo', 'pedrin,ho', 'Maria', 'José', 'Carlos', 'Ana', 'Paula', 'Fernanda', 'Fernando', 'Ricardo', 'Rafael', 'Rafaela',
+    ];
+
+    const barbers = [
+      { id: '01', name: 'Maicon' },
+      { id: '02', name: 'Brendon' },
+      { id: '03', name: 'Pedro' }
     ];
 
     let idCounter = 1;
     const appointments = [];
+    const appointmentsPerBarber = 50;
 
-    specificDates.forEach(date => {
-      for (let i = 0; i < 50; i++) {
+    const availableHours = [9, 10, 11, 14, 15, 16, 17, 18, 19, 20];
+
+    barbers.forEach(barber => {
+      let barberAppointments = 0;
+      while (barberAppointments < appointmentsPerBarber) {
+        const date = specificDates[Math.floor(Math.random() * specificDates.length)];
         const service = services[Math.floor(Math.random() * services.length)];
         const uniqueId = `${Date.now()}-${idCounter++}`;
         const clientName = clientNames[Math.floor(Math.random() * clientNames.length)];
-        const time = `${Math.floor(Math.random() * 8) + 9}:00`;
-        const status = Math.random() > 0.3 ? 'completed' : 'pending';
+        
+        // Selecionar horário aleatório da lista de horários disponíveis
+        const hour = availableHours[Math.floor(Math.random() * availableHours.length)];
+        const time = `${hour}:00`;
 
-        appointments.push({
-          id: uniqueId,
-          clientName: clientName,
-          serviceName: service.name,
-          date: date,
-          time: time,
-          status: status,
-          barberId: '01',
-          barberName: 'Maicon',
-          price: service.price
-        });
+        // Verificar se já existe agendamento neste horário para este barbeiro
+        const existingAppointment = appointments.find(
+          app => app.date === date && app.time === time && app.barberId === barber.id
+        );
 
-        appointments.push({
-          id: uniqueId,
-          clientName: clientName,
-          serviceName: service.name,
-          date: date,
-          time: time,
-          status: status,
-          barberId: '02',
-          barberName: 'Brendon',
-          price: service.price
-        });
+        if (!existingAppointment) {
+          const appointmentDate = new Date(date);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          // Define o status baseado na data
+          const status = appointmentDate < today ? 'completed' : 'pending';
+
+          appointments.push({
+            id: uniqueId,
+            clientName: clientName,
+            serviceName: service.name,
+            date: date,
+            time: time,
+            status: status,
+            barberId: barber.id,
+            barberName: barber.name,
+            price: service.price
+          });
+
+          barberAppointments++;
+        }
       }
     });
 
