@@ -6,6 +6,10 @@ const sequelize = new Sequelize(process.env.DATABASE_URL || 'postgresql://postgr
     ssl: {
       require: true,
       rejectUnauthorized: false
+    },
+    keepAlive: true,
+    options: {
+      family: 4 // Força IPv4
     }
   },
   pool: {
@@ -20,45 +24,47 @@ const sequelize = new Sequelize(process.env.DATABASE_URL || 'postgresql://postgr
     backoffBase: 1000,
     backoffExponent: 1.5
   },
-  define: {
-    timestamps: true
-  },
   host: process.env.DB_HOST || 'db.xxxsgvqbnkftoswascds.supabase.co',
   dialectModule: require('pg'),
   logging: false,
   native: false,
-  hooks: {
-    beforeConnect: async (config) => {
-      config.dialectOptions = {
-        ...config.dialectOptions,
-        application_name: 'barber-backend',
-        connectTimeout: 30000,
-        keepAlive: true
-      };
-    }
+  define: {
+    timestamps: true
   }
 });
 
-// Teste de conexão com retry
+// Função de teste de conexão melhorada
 const testConnection = async () => {
   let retries = 5;
   while (retries > 0) {
     try {
-      await sequelize.authenticate();
-      console.log('Database connection established successfully.');
+      await sequelize.authenticate({
+        // Forçar uso de IPv4
+        dialectOptions: {
+          options: {
+            family: 4
+          }
+        }
+      });
+      console.log('Conexão com o banco de dados estabelecida com sucesso.');
       break;
     } catch (err) {
-      console.log(`Connection attempt failed. Retries left: ${retries - 1}`);
+      console.log(`Tentativa de conexão falhou. Tentativas restantes: ${retries - 1}`);
+      console.error('Detalhes do erro:', err.message);
       retries -= 1;
       if (retries === 0) {
-        console.error('Failed to connect to database:', err);
-        process.exit(1);
+        console.error('Falha ao conectar ao banco de dados após todas as tentativas.');
+        throw err;
       }
       await new Promise(resolve => setTimeout(resolve, 5000));
     }
   }
 };
 
-testConnection();
+// Inicia o teste de conexão
+testConnection().catch(err => {
+  console.error('Erro fatal na conexão:', err);
+  process.exit(1);
+});
 
 module.exports = sequelize;
