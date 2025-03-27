@@ -7,10 +7,7 @@ const sequelize = new Sequelize(process.env.DATABASE_URL || 'postgresql://postgr
       require: true,
       rejectUnauthorized: false
     },
-    keepAlive: true,
-    options: {
-      family: 4 // Força IPv4
-    }
+    keepAlive: true
   },
   pool: {
     max: 5,
@@ -38,14 +35,8 @@ const testConnection = async () => {
   let retries = 5;
   while (retries > 0) {
     try {
-      await sequelize.authenticate({
-        // Forçar uso de IPv4
-        dialectOptions: {
-          options: {
-            family: 4
-          }
-        }
-      });
+      await sequelize.authenticate();
+      // Não passamos opções adicionais aqui para evitar o erro de tipo
       console.log('Conexão com o banco de dados estabelecida com sucesso.');
       break;
     } catch (err) {

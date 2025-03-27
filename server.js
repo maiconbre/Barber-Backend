@@ -1,19 +1,20 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const rateLimit = require('express-rate-limit');
 
 const sequelize = require('./models/database');
+const User = require('./models/User');
 const Barber = require('./models/Barber');
 const Appointment = require('./models/Appointment');
-const User = require('./models/User');
-const Comment = require('./models/Comment');
+const authController = require('./controllers/authController');
+const { createRateLimiter } = require('./middleware/rateLimitMiddleware');
+
+// Importar rotas
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/users');
 const barberRoutes = require('./routes/barberRoutes');
 const commentRoutes = require('./routes/commentRoutes');
-const authController = require('./controllers/authController');
-const { protect, barber } = require('./middleware/authMiddleware');
+const appointmentRoutes = require('./routes/appointmentRoutes');
 
 const app = express();
 
@@ -25,14 +26,31 @@ app.use(cors({
   credentials: true
 }));
 
-// Middleware para processar JSON e adicionar headers de segurança
+// Middleware para processar JSON
 app.use(express.json());
+
+// Middleware para adicionar headers de segurança
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   next();
 });
+
+// Criar o middleware de rate limiting com configurações personalizadas
+const apiLimiter = createRateLimiter({
+  windowMs: 5000, // 5 segundos
+  maxRequests: 3, // máximo de 3 requisições
+  message: {
+    success: false,
+    message: 'Muitas requisições. Por favor, aguarde 5 segundos antes de tentar novamente.'
+  }
+});
+
+// Aplicar rate limiter em rotas específicas
+app.use('/api/comments', apiLimiter);
+app.use('/api/appointments', apiLimiter);
+app.use('/api/barbers', apiLimiter);
 
 // Rotas de autenticação
 app.use('/api/auth', authRoutes);
@@ -45,6 +63,9 @@ app.use('/api/barbers', barberRoutes);
 
 // Rotas de comentários
 app.use('/api/comments', commentRoutes);
+
+// Rotas de agendamentos
+app.use('/api/appointments', appointmentRoutes);
 
 // Rota principal para documentação da API
 app.get('/', (req, res) => {
@@ -107,14 +128,16 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-const HOST = '0.0.0.0';
+const HOST = process.env.HOST || '0.0.0.0';
 
-// Inicialização do banco de dados
+// Inicialização do banco de dados e do servidor
 const initDatabase = async () => {
   try {
+    // Sincronizar o banco de dados sem forçar a recriação das tabelas
     await sequelize.sync({ force: false });
     console.log('Banco de dados sincronizado');
-    
+
+    // Seed inicial de usuários, se necessário
     const usersCount = await User.count();
     if (usersCount === 0) {
       await authController.seedUsers();
@@ -122,127 +145,13 @@ const initDatabase = async () => {
       console.log(`Já existem ${usersCount} usuários no banco de dados.`);
     }
 
-    const server = app.listen(PORT, HOST, () => {
-      console.log(`Server running on port ${PORT}`);
-      const addr = server.address();
-      console.log(`Server listening on ${addr.address}:${addr.port}`);
+    // Inicia o servidor utilizando o HOST e PORT definidos
+    app.listen(PORT, HOST, () => {
+      console.log(`Servidor rodando em http://${HOST}:${PORT}`);
     });
-
-    server.on('error', (err) => {
-      console.error('Server error:', err);
-      process.exit(1);
-    });
-
   } catch (error) {
     console.error('Erro ao inicializar o banco de dados:', error);
-    process.exit(1);
   }
 };
 
-// Iniciar o servidor
 initDatabase();
-
-// Nova rota para listar barbeiros
-app.get('/api/barbers', async (req, res) => {
-  try {
-    const barbers = await Barber.findAll();
-    res.json({
-      success: true,
-      data: barbers
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-// Rota para criar agendamentos
-app.post('/api/appointments', async (req, res) => {
-  try {
-    const appointment = await Appointment.create({
-      id: Date.now().toString(),
-      ...req.body
-    });
-    
-    res.status(201).json({
-      success: true,
-      data: appointment
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-// Atualizar status do agendamento
-app.patch('/api/appointments/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-    
-    const appointment = await Appointment.findByPk(id);
-    if (!appointment) {
-      return res.status(404).json({ success: false, message: 'Agendamento não encontrado' });
-    }
-
-    await appointment.update({ status });
-    res.json({ success: true, data: appointment });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-app.delete('/api/appointments/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const appointment = await Appointment.findByPk(id);
-    
-    if (!appointment) {
-      return res.status(404).json({ success: false, message: 'Agendamento não encontrado' });
-    }
-
-    await appointment.destroy();
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// Rota para listar agendamentos
-app.get('/api/appointments', async (req, res) => {
-  try {
-    const appointments = await Appointment.findAll();
-    res.json({
-      success: true,
-      data: appointments
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-
-// Importar o middleware de rate limiting personalizado
-const { createRateLimiter } = require('./middleware/rateLimitMiddleware');
-
-// Criar o middleware de rate limiting com configurações personalizadas
-const apiLimiter = createRateLimiter({
-  windowMs: 5000, // 5 segundos
-  maxRequests: 3, // máximo de 3 requisições
-  message: {
-    success: false,
-    message: 'Muitas requisições. Por favor, aguarde 5 segundos antes de tentar novamente.'
-  }
-});
-
-// Aplicar rate limiter em rotas específicas
-app.use('/api/comments', apiLimiter);
-app.use('/api/appointments', apiLimiter);
-app.use('/api/barbers', apiLimiter);
