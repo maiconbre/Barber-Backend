@@ -109,19 +109,38 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0';
 
-const server = app.listen(PORT, HOST, () => {
-  console.log(`Server running on port ${PORT}`);
-}).on('error', (err) => {
-  console.error('Server error:', err);
-});
+// Inicialização do banco de dados
+const initDatabase = async () => {
+  try {
+    await sequelize.sync({ force: false });
+    console.log('Banco de dados sincronizado');
+    
+    const usersCount = await User.count();
+    if (usersCount === 0) {
+      await authController.seedUsers();
+    } else {
+      console.log(`Já existem ${usersCount} usuários no banco de dados.`);
+    }
 
-server.on('listening', () => {
-  const addr = server.address();
-  console.log(`Server listening on ${addr.address}:${addr.port}`);
-});
+    const server = app.listen(PORT, HOST, () => {
+      console.log(`Server running on port ${PORT}`);
+      const addr = server.address();
+      console.log(`Server listening on ${addr.address}:${addr.port}`);
+    });
 
-// Force IPv4
-server.listen(PORT, HOST, 4);
+    server.on('error', (err) => {
+      console.error('Server error:', err);
+      process.exit(1);
+    });
+
+  } catch (error) {
+    console.error('Erro ao inicializar o banco de dados:', error);
+    process.exit(1);
+  }
+};
+
+// Iniciar o servidor
+initDatabase();
 
 // Nova rota para listar barbeiros
 app.get('/api/barbers', async (req, res) => {
@@ -209,32 +228,6 @@ app.get('/api/appointments', async (req, res) => {
   }
 });
 
-
-// Inicialização do banco de dados
-const initDatabase = async () => {
-  try {
-    // Sincronizar o banco de dados sem forçar a recriação das tabelas
-    await sequelize.sync({ force: false });
-    console.log('Banco de dados sincronizado');
-    
-
-    // Seed initial users
-    const usersCount = await User.count();
-    if (usersCount === 0) {
-      await authController.seedUsers();
-    } else {
-      console.log(`Já existem ${usersCount} usuários no banco de dados.`);
-    }
-
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error('Erro ao inicializar o banco de dados:', error);
-  }
-};
-
-initDatabase();
 
 // Importar o middleware de rate limiting personalizado
 const { createRateLimiter } = require('./middleware/rateLimitMiddleware');
