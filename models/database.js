@@ -1,6 +1,6 @@
 const { Sequelize } = require('sequelize');
 
-const sequelize = new Sequelize('postgresql://postgres:ajvqIY6dIho00UjX@db.xxxsgvqbnkftoswascds.supabase.co:5432/postgres', {
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
   dialectOptions: {
     ssl: {
