@@ -109,9 +109,19 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0';
 
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`Server running on port ${PORT}`);
+}).on('error', (err) => {
+  console.error('Server error:', err);
 });
+
+server.on('listening', () => {
+  const addr = server.address();
+  console.log(`Server listening on ${addr.address}:${addr.port}`);
+});
+
+// Force IPv4
+server.listen(PORT, HOST, 4);
 
 // Nova rota para listar barbeiros
 app.get('/api/barbers', async (req, res) => {
