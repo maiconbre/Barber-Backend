@@ -127,7 +127,7 @@ app.get('/', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 6543;
 const HOST = process.env.HOST || '0.0.0.0';
 
 // Inicialização do banco de dados e do servidor
