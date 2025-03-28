@@ -6,6 +6,7 @@ const sequelize = require('./models/database');
 const User = require('./models/User');
 const Barber = require('./models/Barber');
 const Appointment = require('./models/Appointment');
+const Service = require('./models/Service');
 const authController = require('./controllers/authController');
 const { createRateLimiter } = require('./middleware/rateLimitMiddleware');
 
@@ -15,6 +16,7 @@ const userRoutes = require('./routes/users');
 const barberRoutes = require('./routes/barberRoutes');
 const commentRoutes = require('./routes/commentRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
+const serviceRoutes = require('./routes/serviceRoutes');
 
 const app = express();
 
@@ -40,7 +42,7 @@ app.use((req, res, next) => {
 // Criar o middleware de rate limiting com configurações personalizadas
 const apiLimiter = createRateLimiter({
   windowMs: 5000, // 5 segundos
-  maxRequests: 70, // máximo de 70 requisições
+  maxRequests: 3, // máximo de 3 requisições
   message: {
     success: false,
     message: 'Muitas requisições. Por favor, aguarde 5 segundos antes de tentar novamente.'
@@ -66,6 +68,9 @@ app.use('/api/comments', commentRoutes);
 
 // Rotas de agendamentos
 app.use('/api/appointments', appointmentRoutes);
+
+// Rotas de serviços
+app.use('/api/services', serviceRoutes);
 
 // Rota principal para documentação da API
 app.get('/', (req, res) => {
@@ -122,6 +127,18 @@ app.get('/', (req, res) => {
           'PATCH /:id': 'Atualizar status do comentário',
           'DELETE /:id': 'Excluir comentário'
         }
+      },
+      services: {
+        base: '/api/services',
+        routes: {
+          'GET /': 'Listar todos os serviços',
+          'GET /:id': 'Obter serviço por ID',
+          'GET /barber/:barberId': 'Obter serviços por barbeiro',
+          'POST /': 'Criar novo serviço (requer autenticação)',
+          'PATCH /:id': 'Atualizar serviço (requer autenticação)',
+          'DELETE /:id': 'Excluir serviço (requer autenticação)',
+          'POST /:id/barbers': 'Associar barbeiros a um serviço (requer autenticação)'
+        }
       }
     }
   });
@@ -147,6 +164,7 @@ const initDatabase = async () => {
 
     // Inicia o servidor utilizando o HOST e PORT definidos
     app.listen(PORT, HOST, () => {
+      console.log(`Servidor rodando em http://localhost:${PORT}`);
     });
   } catch (error) {
     console.error('Erro ao inicializar o banco de dados:', error);

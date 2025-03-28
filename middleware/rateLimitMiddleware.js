@@ -8,7 +8,7 @@ const createRateLimiter = (options = {}) => {
   // Configurações padrão
   const config = {
     windowMs: options.windowMs || 5000, // 5 segundos padrão
-    maxRequests: options.maxRequests || 3, // 3 requisições padrão
+    maxRequests: options.maxRequests || 30, // 30 requisições padrão
     message: options.message || {
       success: false,
       message: 'Muitas requisições. Por favor, aguarde alguns segundos antes de tentar novamente.'

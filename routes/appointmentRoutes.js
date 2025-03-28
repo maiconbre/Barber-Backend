@@ -5,16 +5,15 @@ const Appointment = require('../models/Appointment');
 // Rota para listar agendamentos
 router.get('/', async (req, res) => {
   try {
-    const appointments = await Appointment.findAll();
-    res.json({
-      success: true,
-      data: appointments
+    const { barberId } = req.query;
+    const appointments = await Appointment.findAll({
+      where: barberId ? { barberId } : {},
+      order: [['date', 'DESC'], ['time', 'ASC']]
     });
+
+    res.json({ success: true, data: appointments });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
