@@ -41,8 +41,8 @@ app.use((req, res, next) => {
 
 // Criar o middleware de rate limiting com configurações personalizadas
 const apiLimiter = createRateLimiter({
-  windowMs: 5000, // 5 segundos
-  maxRequests: 3, // máximo de 3 requisições
+  windowMs: 10000, // 5 segundos
+  maxRequests: 20, // máximo de 3 requisições
   message: {
     success: false,
     message: 'Muitas requisições. Por favor, aguarde 5 segundos antes de tentar novamente.'
