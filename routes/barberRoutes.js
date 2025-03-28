@@ -5,6 +5,22 @@ const Barber = require('../models/Barber');
 const Appointment = require('../models/Appointment');
 const sequelize = require('../models/database');
 
+// Rota para listar todos os barbeiros
+router.get('/', async (req, res) => {
+  try {
+    const barbers = await Barber.findAll();
+    res.json({
+      success: true,
+      data: barbers
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 // Rota para obter detalhes de um barbeiro específico
 router.get('/:id', async (req, res) => {
   try {
