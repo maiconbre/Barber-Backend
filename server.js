@@ -40,7 +40,7 @@ app.use((req, res, next) => {
 // Criar o middleware de rate limiting com configurações personalizadas
 const apiLimiter = createRateLimiter({
   windowMs: 5000, // 5 segundos
-  maxRequests: 3, // máximo de 3 requisições
+  maxRequests: 50, // máximo de 50 requisições
   message: {
     success: false,
     message: 'Muitas requisições. Por favor, aguarde 5 segundos antes de tentar novamente.'
@@ -147,7 +147,6 @@ const initDatabase = async () => {
 
     // Inicia o servidor utilizando o HOST e PORT definidos
     app.listen(PORT, HOST, () => {
-      console.log(`Servidor rodando em http://${HOST}:${PORT}`);
     });
   } catch (error) {
     console.error('Erro ao inicializar o banco de dados:', error);
