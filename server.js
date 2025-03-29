@@ -22,7 +22,7 @@ const app = express();
 
 // Configuração do CORS para permitir requisições do Vercel e outras origens
 app.use(cors({
-  origin: ['https://barber-shop-ten-mu.vercel.app', 'http://localhost:5173'],
+  origin: ['https://barber-shop-ten-mu.vercel.app', 'http://localhost:5173', 'https://barber.targetweb.tech'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
