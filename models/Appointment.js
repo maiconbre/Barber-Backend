@@ -37,6 +37,10 @@ const Appointment = sequelize.define('Appointment', {
   price: {
     type: DataTypes.FLOAT,
     allowNull: false
+  },
+  wppclient: {
+    type: DataTypes.STRING,
+    allowNull: false
   }
 });
 
