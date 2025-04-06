@@ -4,10 +4,12 @@ const Service = require('./Service.js');
 const Comment = require('./Comment.js');
 const User = require('./User.js');
 
+
 module.exports = {
   Appointment,
   Barber,
   Service,
   Comment,
-  User
+  User,
+  
 };

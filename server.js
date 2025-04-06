@@ -147,6 +147,14 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 6543;
 const HOST = process.env.HOST || '0.0.0.0';
 
+// Rota para lidar com rotas não encontradas
+app.use('*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Rota não encontrada'
+  });
+});
+
 // Inicialização do banco de dados e do servidor
 const initDatabase = async () => {
   try {
@@ -172,3 +180,6 @@ const initDatabase = async () => {
 };
 
 initDatabase();
+
+// Exportar o app para ser usado em start.js
+module.exports = app;
