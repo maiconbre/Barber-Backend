@@ -1,12 +1,9 @@
 const Service = require('../models/Service');
-const Barber = require('../models/Barber');
 
 // Obter todos os serviços
 exports.getAllServices = async (req, res) => {
   try {
-    const services = await Service.findAll({
-      include: [{ model: Barber, attributes: ['id', 'name'] }]
-    });
+    const services = await Service.findAll();
     
     return res.status(200).json({
       success: true,
@@ -25,9 +22,7 @@ exports.getAllServices = async (req, res) => {
 // Obter serviço por ID
 exports.getServiceById = async (req, res) => {
   try {
-    const service = await Service.findByPk(req.params.id, {
-      include: [{ model: Barber, attributes: ['id', 'name'] }]
-    });
+    const service = await Service.findByPk(req.params.id);
     
     if (!service) {
       return res.status(404).json({
@@ -53,7 +48,7 @@ exports.getServiceById = async (req, res) => {
 // Criar novo serviço
 exports.createService = async (req, res) => {
   try {
-    const { name, price, barbers } = req.body;
+    const { name, price } = req.body;
     
     // Validações básicas
     if (!name || !price) {
@@ -78,23 +73,10 @@ exports.createService = async (req, res) => {
       price
     });
     
-    // Associar barbeiros se fornecidos
-    if (barbers && barbers.length > 0) {
-      const barberInstances = await Barber.findAll({
-        where: { id: barbers }
-      });
-      await service.setBarbers(barberInstances);
-    }
-    
-    // Buscar o serviço com os barbeiros associados
-    const createdService = await Service.findByPk(service.id, {
-      include: [{ model: Barber, attributes: ['id', 'name'] }]
-    });
-    
     return res.status(201).json({
       success: true,
       message: 'Serviço criado com sucesso',
-      data: createdService
+      data: service
     });
   } catch (error) {
     console.error('Erro ao criar serviço:', error);
@@ -110,7 +92,7 @@ exports.createService = async (req, res) => {
 exports.updateService = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, price, barbers } = req.body;
+    const { name, price } = req.body;
     
     // Buscar o serviço
     const service = await Service.findByPk(id);
@@ -126,23 +108,10 @@ exports.updateService = async (req, res) => {
     if (price !== undefined) service.price = price;
     await service.save();
     
-    // Atualizar associações de barbeiros se fornecidos
-    if (barbers && Array.isArray(barbers)) {
-      const barberInstances = await Barber.findAll({
-        where: { id: barbers }
-      });
-      await service.setBarbers(barberInstances);
-    }
-    
-    // Buscar o serviço atualizado com os barbeiros associados
-    const updatedService = await Service.findByPk(id, {
-      include: [{ model: Barber, attributes: ['id', 'name'] }]
-    });
-    
     return res.status(200).json({
       success: true,
       message: 'Serviço atualizado com sucesso',
-      data: updatedService
+      data: service
     });
   } catch (error) {
     console.error('Erro ao atualizar serviço:', error);
@@ -167,9 +136,6 @@ exports.deleteService = async (req, res) => {
         message: 'Serviço não encontrado'
       });
     }
-    
-    // Remover associações com barbeiros
-    await service.setBarbers([]);
     
     // Excluir o serviço
     await service.destroy();
