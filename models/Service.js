@@ -1,7 +1,5 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('./database');
-const Barber = require('./Barber');
-
 const Service = sequelize.define('Service', {
   id: {
     type: DataTypes.UUID,
@@ -20,7 +18,5 @@ const Service = sequelize.define('Service', {
 });
 
 // Relação muitos-para-muitos entre Serviços e Barbeiros
-Service.belongsToMany(Barber, { through: 'BarberServices' });
-Barber.belongsToMany(Service, { through: 'BarberServices' });
 
 module.exports = Service;
