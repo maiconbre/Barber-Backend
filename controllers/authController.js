@@ -1,12 +1,22 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const jwtConfig = require('../config/jwt');
 
 // Helper function to generate JWT token
 const generateToken = (user) => {
   return jwt.sign(
     { id: user.id, username: user.username, role: user.role },
-    process.env.JWT_SECRET || 'your-secret-key',
-    { expiresIn: '30m' }
+    jwtConfig.secret,
+    { expiresIn: jwtConfig.expiresIn }
+  );
+};
+
+// Helper function to generate refresh token
+const generateRefreshToken = (user) => {
+  return jwt.sign(
+    { id: user.id },
+    jwtConfig.refreshSecret,
+    { expiresIn: jwtConfig.refreshExpiresIn }
   );
 };
 
@@ -59,10 +69,11 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Gerar token
+    // Gerar tokens
     const token = generateToken(user);
+    const refreshToken = generateRefreshToken(user);
 
-    // Retornar dados do usuário e token (excluindo senha)
+    // Retornar dados do usuário e tokens (excluindo senha)
     const userData = {
       id: user.id,
       username: user.username,
@@ -76,11 +87,71 @@ exports.login = async (req, res) => {
       success: true,
       data: {
         user: userData,
-        token
+        token,
+        refreshToken
       }
     });
   } catch (error) {
     console.error('Erro no login:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro no servidor'
+    });
+  }
+};
+
+// Refresh token controller
+exports.refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Refresh token é obrigatório'
+      });
+    }
+    
+    // Verificar refresh token
+    jwt.verify(refreshToken, jwtConfig.refreshSecret, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({
+          success: false,
+          message: 'Refresh token inválido ou expirado'
+        });
+      }
+      
+      try {
+        // Buscar usuário pelo ID decodificado
+        const user = await User.findByPk(decoded.id);
+        
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            message: 'Usuário não encontrado'
+          });
+        }
+        
+        // Gerar novo token de acesso
+        const newToken = generateToken(user);
+        
+        // Retornar novo token
+        res.json({
+          success: true,
+          data: {
+            token: newToken
+          }
+        });
+      } catch (error) {
+        console.error('Erro ao processar refresh token:', error);
+        res.status(500).json({
+          success: false,
+          message: 'Erro no servidor'
+        });
+      }
+    });
+  } catch (error) {
+    console.error('Erro no refresh token:', error);
     res.status(500).json({
       success: false,
       message: 'Erro no servidor'

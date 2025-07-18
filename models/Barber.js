@@ -1,6 +1,5 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('./database');
-
 const Barber = sequelize.define('Barber', {
   id: {
     type: DataTypes.STRING,
@@ -19,5 +18,7 @@ const Barber = sequelize.define('Barber', {
     allowNull: false
   }
 });
+
+// Relação muitos-para-muitos entre Barbeiros e Serviços
 
 module.exports = Barber;

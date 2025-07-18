@@ -8,6 +8,7 @@ const router = express.Router();
 // Public routes
 router.post('/login', authController.login);
 router.post('/validate-token', authController.validateToken);
+router.post('/refresh-token', authController.refreshToken);
 
 // Protected routes
 router.post('/register', protect, admin, authController.register);

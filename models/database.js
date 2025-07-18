@@ -1,33 +1,16 @@
 const { Sequelize } = require('sequelize');
+const dbConfig = require('../config/database');
 
-const sequelize = new Sequelize(process.env.DATABASE_URL || 'postgresql://postgres:rDazZ1zCjD3PkOKJ@db.xxxsgvqbnkftoswascds.supabase.co:5432/postgres', {
-  dialect: 'postgres',
-  dialectOptions: {
-    ssl: {
-      require: true,
-      rejectUnauthorized: false
-    },
-    keepAlive: true
-  },
-  pool: {
-    max: 5,
-    min: 0,
-    idle: 10000,
-    acquire: 30000
-  },
-  retry: {
-    max: 5,
-    match: [/SequelizeConnectionError/],
-    backoffBase: 1000,
-    backoffExponent: 1.5
-  },
-  host: process.env.DB_HOST || 'db.xxxsgvqbnkftoswascds.supabase.co',
+// Criar instância do Sequelize com a configuração do ambiente atual
+const sequelize = new Sequelize(dbConfig.url, {
+  dialect: dbConfig.dialect,
+  dialectOptions: dbConfig.dialectOptions,
+  pool: dbConfig.pool,
+  retry: dbConfig.retry,
   dialectModule: require('pg'),
-  logging: false,
-  native: false,
-  define: {
-    timestamps: true
-  }
+  logging: dbConfig.logging,
+  native: dbConfig.native,
+  define: dbConfig.define
 });
 
 // Função de teste de conexão melhorada
