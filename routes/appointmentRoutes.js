@@ -1,9 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const Appointment = require('../models/Appointment');
+const { limitRepeatedRequests } = require('../middleware/requestLimitMiddleware');
 
-// Rota para listar agendamentos
-router.get('/', async (req, res) => {
+// Configuração do limitador de chamadas repetidas para agendamentos
+const appointmentLimiter = limitRepeatedRequests({
+  maxRepeatedRequests: 3, // Limita a 3 chamadas idênticas
+  blockTimeMs: 300000, // Bloqueia por 5 minutos (300000ms)
+  message: {
+    success: false,
+    message: 'Muitas requisições idênticas. Esta operação está temporariamente bloqueada.'
+  }
+});
+
+// Rota para listar agendamentos com limitador
+router.get('/', appointmentLimiter, async (req, res) => {
   try {
     const { barberId } = req.query;
     const appointments = await Appointment.findAll({
@@ -17,8 +28,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Rota para criar agendamentos
-router.post('/', async (req, res) => {
+// Rota para criar agendamentos com limitador
+router.post('/', appointmentLimiter, async (req, res) => {
   try {
     const appointment = await Appointment.create({
       id: Date.now().toString(),
@@ -37,8 +48,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Atualizar status do agendamento
-router.patch('/:id', async (req, res) => {
+// Atualizar status do agendamento com limitador
+router.patch('/:id', appointmentLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -55,8 +66,8 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-// Excluir agendamento
-router.delete('/:id', async (req, res) => {
+// Excluir agendamento com limitador
+router.delete('/:id', appointmentLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const appointment = await Appointment.findByPk(id);

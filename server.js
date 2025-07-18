@@ -8,7 +8,10 @@ const Barber = require('./models/Barber');
 const Appointment = require('./models/Appointment');
 const Service = require('./models/Service');
 const authController = require('./controllers/authController');
+// Importamos apenas para manter compatibilidade, mas não usaremos globalmente
 const { createRateLimiter } = require('./middleware/rateLimitMiddleware');
+// Importamos o novo limitador de chamadas repetidas
+const { limitRepeatedRequests } = require('./middleware/requestLimitMiddleware');
 
 // Importar rotas
 const authRoutes = require('./routes/authRoutes');
@@ -63,20 +66,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Criar o middleware de rate limiting com configurações personalizadas
-const apiLimiter = createRateLimiter({
-  windowMs: 5000, // 5 segundos
-  maxRequests: 10, // máximo de 3 requisições
-  message: {
-    success: false,
-    message: 'Muitas requisições. Por favor, aguarde 5 segundos antes de tentar novamente.'
-  }
-});
-
-// Aplicar rate limiter em rotas específicas
-app.use('/api/comments', apiLimiter);
-app.use('/api/appointments', apiLimiter);
-app.use('/api/barbers', apiLimiter);
+// Removemos o rate limiter global, pois agora temos limitadores específicos por rota
+// que controlam chamadas repetidas com base no conteúdo da requisição
+// Isso oferece uma proteção mais eficaz contra abusos específicos
 
 // Rotas de autenticação
 app.use('/api/auth', authRoutes);
