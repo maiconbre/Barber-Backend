@@ -10,7 +10,7 @@ const requestCache = new Map();
 const limitRepeatedRequests = (options = {}) => {
   // Configurações padrão
   const config = {
-    maxRepeatedRequests: options.maxRepeatedRequests || 50, // 50 requisições idênticas padrão
+    maxRepeatedRequests: options.maxRepeatedRequests || 30, // 3 requisições idênticas padrão
     blockTimeMs: options.blockTimeMs || 300000, // 5 minutos (300000ms) padrão
     message: options.message || {
       success: false,
