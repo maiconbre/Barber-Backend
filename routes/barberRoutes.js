@@ -4,9 +4,20 @@ const User = require('../models/User');
 const Barber = require('../models/Barber');
 const Appointment = require('../models/Appointment');
 const sequelize = require('../models/database');
+const { limitRepeatedRequests } = require('../middleware/requestLimitMiddleware');
 
-// Rota para listar todos os barbeiros
-router.get('/', async (req, res) => {
+// Configuração do limitador de chamadas repetidas para barbeiros
+const barberLimiter = limitRepeatedRequests({
+  maxRepeatedRequests: 3, // Limita a 3 chamadas idênticas
+  blockTimeMs: 300000, // Bloqueia por 5 minutos (300000ms)
+  message: {
+    success: false,
+    message: 'Muitas requisições idênticas. Esta operação está temporariamente bloqueada.'
+  }
+});
+
+// Rota para listar todos os barbeiros com limitador
+router.get('/', barberLimiter, async (req, res) => {
   try {
     const barbers = await Barber.findAll();
     res.json({
@@ -21,8 +32,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Rota para obter detalhes de um barbeiro específico
-router.get('/:id', async (req, res) => {
+// Rota para obter detalhes de um barbeiro específico com limitador
+router.get('/:id', barberLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const formattedId = String(id).padStart(2, '0');
@@ -64,8 +75,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Rota para atualizar barbeiro
-router.patch('/:id', async (req, res) => {
+// Rota para atualizar barbeiro com limitador
+router.patch('/:id', barberLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     // Garantir que o ID esteja no formato correto (com zero à esquerda se necessário)
@@ -148,8 +159,8 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-// Rota para criar novo barbeiro
-router.post('/', async (req, res) => {
+// Rota para criar novo barbeiro com limitador
+router.post('/', barberLimiter, async (req, res) => {
   try {
     const { name, username, password, whatsapp, pix } = req.body;
 
@@ -207,8 +218,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Rota para excluir barbeiro
-router.delete('/:id', async (req, res) => {
+// Rota para excluir barbeiro com limitador
+router.delete('/:id', barberLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const formattedId = String(id).length === 1 ? `0${id}` : String(id);

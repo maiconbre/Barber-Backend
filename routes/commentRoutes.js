@@ -2,9 +2,31 @@ const express = require('express');
 const router = express.Router();
 const Comment = require('../models/Comment');
 const { protect, admin } = require('../middleware/authMiddleware');
+const { limitRepeatedRequests } = require('../middleware/requestLimitMiddleware');
 
-// Rota para criar um novo comentário (pública)
-router.post('/', async (req, res) => {
+// Configuração do limitador de chamadas repetidas para comentários
+// Mais restritivo para criação de comentários para evitar spam
+const commentLimiter = limitRepeatedRequests({
+  maxRepeatedRequests: 2, // Limita a 2 chamadas idênticas
+  blockTimeMs: 600000, // Bloqueia por 10 minutos (600000ms)
+  message: {
+    success: false,
+    message: 'Muitas requisições idênticas. Esta operação está temporariamente bloqueada.'
+  }
+});
+
+// Configuração do limitador para leitura de comentários
+const commentReadLimiter = limitRepeatedRequests({
+  maxRepeatedRequests: 3, // Limita a 3 chamadas idênticas
+  blockTimeMs: 300000, // Bloqueia por 5 minutos (300000ms)
+  message: {
+    success: false,
+    message: 'Muitas requisições idênticas. Esta operação está temporariamente bloqueada.'
+  }
+});
+
+// Rota para criar um novo comentário (pública) com limitador
+router.post('/', commentLimiter, async (req, res) => {
   try {
     const { name, comment } = req.body;
 
@@ -35,8 +57,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Rota para listar todos os comentários (pública)
-router.get('/', async (req, res) => {
+// Rota para listar todos os comentários (pública) com limitador
+router.get('/', commentReadLimiter, async (req, res) => {
   try {
     const { status } = req.query;
     let whereClause = {};
@@ -71,8 +93,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Rota para listar todos os comentários (incluindo pendentes) - apenas admin
-router.get('/admin', protect, admin, async (req, res) => {
+// Rota para listar todos os comentários (incluindo pendentes) - apenas admin com limitador
+router.get('/admin', protect, admin, commentReadLimiter, async (req, res) => {
   try {
     const comments = await Comment.findAll({
       order: [['createdAt', 'DESC']]
@@ -91,8 +113,8 @@ router.get('/admin', protect, admin, async (req, res) => {
   }
 });
 
-// Rota para atualizar o status de um comentário (pública)
-router.patch('/:id', async (req, res) => {
+// Rota para atualizar o status de um comentário (pública) com limitador
+router.patch('/:id', commentLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -127,8 +149,8 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-// Rota para excluir um comentário
-router.delete('/:id', async (req, res) => {
+// Rota para excluir um comentário com limitador
+router.delete('/:id', commentLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     

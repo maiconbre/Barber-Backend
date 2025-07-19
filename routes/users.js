@@ -2,9 +2,30 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Barber = require('../models/Barber');
+const { limitRepeatedRequests } = require('../middleware/requestLimitMiddleware');
 
-// Rota para listar todos os usuários
-router.get('/', async (req, res) => {
+// Configuração do limitador de chamadas repetidas para usuários
+const userLimiter = limitRepeatedRequests({
+  maxRepeatedRequests: 3, // Limita a 3 chamadas idênticas
+  blockTimeMs: 300000, // Bloqueia por 5 minutos (300000ms)
+  message: {
+    success: false,
+    message: 'Muitas requisições idênticas. Esta operação está temporariamente bloqueada.'
+  }
+});
+
+// Configuração do limitador para operações sensíveis
+const userSensitiveLimiter = limitRepeatedRequests({
+  maxRepeatedRequests: 2, // Limita a 2 chamadas idênticas
+  blockTimeMs: 600000, // Bloqueia por 10 minutos (600000ms)
+  message: {
+    success: false,
+    message: 'Muitas tentativas. Esta operação está temporariamente bloqueada.'
+  }
+});
+
+// Rota para listar todos os usuários com limitador
+router.get('/', userLimiter, async (req, res) => {
   try {
     const users = await User.findAll({
       attributes: ['id','username','role', 'name', 'password']
@@ -23,8 +44,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Endpoint para alterar senha
-router.post('/change-password', async (req, res) => {
+// Endpoint para alterar senha com limitador mais restritivo
+router.post('/change-password', userSensitiveLimiter, async (req, res) => {
   try {
     const { currentPassword, newPassword, userId } = req.body;
 
@@ -51,8 +72,8 @@ router.post('/change-password', async (req, res) => {
   }
 });
 
-// Rota para obter usuário por ID
-router.get('/:id', async (req, res) => {
+// Rota para obter usuário por ID com limitador
+router.get('/:id', userLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     // Garantir que o ID esteja no formato correto (com zero à esquerda se necessário)
@@ -84,8 +105,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Rota para atualizar usuário
-router.patch('/:id', async (req, res) => {
+// Rota para atualizar usuário com limitador
+router.patch('/:id', userSensitiveLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     // Garantir que o ID esteja no formato correto (com zero à esquerda se necessário)

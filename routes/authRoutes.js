@@ -1,19 +1,32 @@
 const express = require('express');
 const authController = require('../controllers/authController');
 const { protect, admin } = require('../middleware/authMiddleware');
+const { limitRepeatedRequests } = require('../middleware/requestLimitMiddleware');
 const User = require('../models/User'); // Adicionar esta importação no topo
 
 const router = express.Router();
 
-// Public routes
-router.post('/login', authController.login);
-router.post('/validate-token', authController.validateToken);
+// Configuração do limitador de chamadas repetidas para autenticação
+// Mais restritivo para rotas de autenticação (apenas 2 tentativas)
+const authLimiter = limitRepeatedRequests({
+  maxRepeatedRequests: 2, // Limita a 2 chamadas idênticas
+  blockTimeMs: 600000, // Bloqueia por 10 minutos (600000ms)
+  message: {
+    success: false,
+    message: 'Muitas tentativas de autenticação. Esta operação está temporariamente bloqueada.'
+  }
+});
 
-// Protected routes
-router.post('/register', protect, admin, authController.register);
+// Public routes com limitador
+router.post('/login', authLimiter, authController.login);
+router.post('/validate-token', authLimiter, authController.validateToken);
+router.post('/refresh-token', authLimiter, authController.refreshToken);
 
-// rota para verificar a senha do admin
-router.post('/verify-admin', async (req, res) => {
+// Protected routes com limitador
+router.post('/register', protect, admin, authLimiter, authController.register);
+
+// rota para verificar a senha do admin com limitador
+router.post('/verify-admin', authLimiter, async (req, res) => {
   try {
     const { password } = req.body;
 
@@ -53,8 +66,8 @@ router.post('/verify-admin', async (req, res) => {
   }
 });
 
-// Rota para listar todos os usuários (apenas para depuração)
-router.get('/users', async (req, res) => {
+// Rota para listar todos os usuários (apenas para depuração) com limitador
+router.get('/users', authLimiter, async (req, res) => {
   try {
     const User = require('../models/User');
     const users = await User.findAll({

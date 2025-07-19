@@ -8,7 +8,10 @@ const Barber = require('./models/Barber');
 const Appointment = require('./models/Appointment');
 const Service = require('./models/Service');
 const authController = require('./controllers/authController');
+// Importamos apenas para manter compatibilidade, mas não usaremos globalmente
 const { createRateLimiter } = require('./middleware/rateLimitMiddleware');
+// Importamos o novo limitador de chamadas repetidas
+const { limitRepeatedRequests } = require('./middleware/requestLimitMiddleware');
 
 // Importar rotas
 const authRoutes = require('./routes/authRoutes');
@@ -20,13 +23,11 @@ const serviceRoutes = require('./routes/serviceRoutes');
 
 const app = express();
 
-// Configuração do CORS para permitir requisições do Vercel e outras origens
-app.use(cors({
-  origin: ['https://barber-shop-ten-mu.vercel.app', 'http://localhost:5173', 'https://barber.targetweb.tech'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
+// Importar configuração do CORS
+const corsConfig = require('./config/cors');
+
+// Configuração do CORS baseada no ambiente atual
+app.use(cors(corsConfig));
 
 // Middleware para processar JSON
 app.use(express.json());
@@ -39,20 +40,35 @@ app.use((req, res, next) => {
   next();
 });
 
-// Criar o middleware de rate limiting com configurações personalizadas
-const apiLimiter = createRateLimiter({
-  windowMs: 5000, // 5 segundos
-  maxRequests: 10, // máximo de 3 requisições
-  message: {
-    success: false,
-    message: 'Muitas requisições. Por favor, aguarde 5 segundos antes de tentar novamente.'
+// Middleware global para logar todas as requisições HTTP
+app.use((req, res, next) => {
+  // Ignorar requisições OPTIONS (preflight CORS)
+  if (req.method === 'OPTIONS') {
+    return next();
   }
+  
+  const requestId = Date.now();
+  const start = Date.now();
+  const ip = req.ip || req.connection.remoteAddress;
+  const method = req.method;
+  const url = req.originalUrl;
+  const userAgent = req.get('user-agent') || 'unknown';
+  
+  console.log(`[${new Date().toISOString()}] [HTTP:${requestId}] ${method} ${url} - INÍCIO - IP: ${ip} - User-Agent: ${userAgent}`);
+  
+  // Interceptar a finalização da resposta
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const status = res.statusCode;
+    console.log(`[${new Date().toISOString()}] [HTTP:${requestId}] ${method} ${url} - FIM - Status: ${status} - Duração: ${duration}ms`);
+  });
+  
+  next();
 });
 
-// Aplicar rate limiter em rotas específicas
-app.use('/api/comments', apiLimiter);
-app.use('/api/appointments', apiLimiter);
-app.use('/api/barbers', apiLimiter);
+// Removemos o rate limiter global, pois agora temos limitadores específicos por rota
+// que controlam chamadas repetidas com base no conteúdo da requisição
+// Isso oferece uma proteção mais eficaz contra abusos específicos
 
 // Rotas de autenticação
 app.use('/api/auth', authRoutes);

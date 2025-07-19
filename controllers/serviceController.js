@@ -2,20 +2,28 @@ const Service = require('../models/Service');
 
 // Obter todos os serviços
 exports.getAllServices = async (req, res) => {
+  const requestId = Date.now();
+  console.log(`[${new Date().toISOString()}] [REQUEST:${requestId}] Iniciando busca de serviços`);
+  console.log(`[${new Date().toISOString()}] [REQUEST:${requestId}] IP: ${req.ip}, User-Agent: ${req.get('user-agent')}`);
+  
   try {
+    console.log(`[${new Date().toISOString()}] [REQUEST:${requestId}] Executando Service.findAll()`);
     const services = await Service.findAll();
+    console.log(`[${new Date().toISOString()}] [REQUEST:${requestId}] Serviços encontrados: ${services.length}`);
     
     return res.status(200).json({
       success: true,
       data: services
     });
   } catch (error) {
-    console.error('Erro ao buscar serviços:', error);
+    console.error(`[${new Date().toISOString()}] [REQUEST:${requestId}] Erro ao buscar serviços:`, error);
     return res.status(500).json({
       success: false,
       message: 'Erro ao buscar serviços',
       error: error.message
     });
+  } finally {
+    console.log(`[${new Date().toISOString()}] [REQUEST:${requestId}] Finalizando busca de serviços`);
   }
 };
 
