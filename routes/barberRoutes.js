@@ -6,18 +6,33 @@ const Appointment = require('../models/Appointment');
 const sequelize = require('../models/database');
 const { limitRepeatedRequests } = require('../middleware/requestLimitMiddleware');
 
-// Configuração do limitador de chamadas repetidas para barbeiros
-const barberLimiter = limitRepeatedRequests({
-  maxRepeatedRequests: 3, // Limita a 3 chamadas idênticas
-  blockTimeMs: 300000, // Bloqueia por 5 minutos (300000ms)
+// Configurações otimizadas para diferentes tipos de operações
+const readLimiter = limitRepeatedRequests({
+  maxRepeatedRequests: 150, // Limite alto para consulta de barbeiros
+  burstLimit: 30, // Permite rajadas para carregamento de listas
+  windowMs: 60000,
+  blockTimeMs: 45000, // Bloqueio curto para leitura
+  gracePeriodMs: 1500,
   message: {
     success: false,
-    message: 'Muitas requisições idênticas. Esta operação está temporariamente bloqueada.'
+    message: 'Muitas consultas de barbeiros. Aguarde um momento.'
   }
 });
 
-// Rota para listar todos os barbeiros com limitador
-router.get('/', barberLimiter, async (req, res) => {
+const writeLimiter = limitRepeatedRequests({
+  maxRepeatedRequests: 15, // Limite moderado para operações de barbeiros
+  burstLimit: 5,
+  windowMs: 60000,
+  blockTimeMs: 150000, // Bloqueio maior para modificações
+  gracePeriodMs: 4000,
+  message: {
+    success: false,
+    message: 'Muitas operações de modificação. Aguarde antes de tentar novamente.'
+  }
+});
+
+// Rota para listar todos os barbeiros com limitador otimizado para leitura
+router.get('/', readLimiter, async (req, res) => {
   try {
     const barbers = await Barber.findAll();
     res.json({
@@ -32,8 +47,8 @@ router.get('/', barberLimiter, async (req, res) => {
   }
 });
 
-// Rota para obter detalhes de um barbeiro específico com limitador
-router.get('/:id', barberLimiter, async (req, res) => {
+// Rota para obter detalhes de um barbeiro específico com limitador para leitura
+router.get('/:id', readLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const formattedId = String(id).padStart(2, '0');
@@ -75,8 +90,8 @@ router.get('/:id', barberLimiter, async (req, res) => {
   }
 });
 
-// Rota para atualizar barbeiro com limitador
-router.patch('/:id', barberLimiter, async (req, res) => {
+// Rota para atualizar barbeiro com limitador para escrita
+router.patch('/:id', writeLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     // Garantir que o ID esteja no formato correto (com zero à esquerda se necessário)
@@ -159,8 +174,8 @@ router.patch('/:id', barberLimiter, async (req, res) => {
   }
 });
 
-// Rota para criar novo barbeiro com limitador
-router.post('/', barberLimiter, async (req, res) => {
+// Rota para criar novo barbeiro com limitador para escrita
+router.post('/', writeLimiter, async (req, res) => {
   try {
     const { name, username, password, whatsapp, pix } = req.body;
 
@@ -218,8 +233,8 @@ router.post('/', barberLimiter, async (req, res) => {
   }
 });
 
-// Rota para excluir barbeiro com limitador
-router.delete('/:id', barberLimiter, async (req, res) => {
+// Rota para excluir barbeiro com limitador para escrita
+router.delete('/:id', writeLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const formattedId = String(id).length === 1 ? `0${id}` : String(id);
