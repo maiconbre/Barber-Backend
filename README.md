@@ -266,11 +266,21 @@ npm run dev
 ### Scripts Disponíveis
 
 ```bash
-npm start          # Produção
-npm run dev        # Desenvolvimento com nodemon
-npm run dev:local  # Desenvolvimento local
-npm run test:db    # Teste de conexão com banco
-npm run seed       # Executar seeds
+# Desenvolvimento
+npm start              # Produção
+npm run dev            # Desenvolvimento com nodemon
+npm run dev:local      # Desenvolvimento local
+npm run build          # Build para produção
+
+# Banco de Dados
+npm run test:db        # Teste de conexão com banco
+npm run seed           # Executar seeds
+
+# Monitoramento
+npm run health-check   # Verificação de saúde
+
+# Testes
+npm test               # Executar testes (quando implementados)
 ```
 
 ## 🔧 Tecnologias Utilizadas
@@ -316,6 +326,43 @@ npm run seed       # Executar seeds
 
 
 ## 🚀 Deploy e Produção
+
+### 📋 Guia de Deploy
+
+Para instruções detalhadas de deploy, consulte o guia:
+- **[KOYEB_DEPLOY_GUIDE.md](./KOYEB_DEPLOY_GUIDE.md)** - Deploy no Koyeb
+
+#### Plataforma Recomendada
+
+**🎯 Koyeb (MAIS SIMPLES)**
+- ✅ **Interface super simples** - Deploy via GitHub em poucos cliques
+- ✅ **PostgreSQL com 1 clique** - Banco de dados gerenciado
+- ✅ **Plano gratuito** - Até 2 apps gratuitas
+- ✅ **Deploy automático** - Conecta direto com GitHub
+- ✅ **Sem CLI necessária** - Tudo via interface web
+- ✅ **Global por padrão** - Edge computing
+
+#### Como fazer Deploy
+
+1. **Acesse**: [app.koyeb.com](https://app.koyeb.com)
+2. **Login**: Com sua conta GitHub
+3. **Create App**: Conecte seu repositório
+4. **Configure**: Variáveis de ambiente
+5. **Add PostgreSQL**: Banco gratuito
+6. **Deploy**: Automático!
+
+#### Scripts Disponíveis
+
+```bash
+# Verificar saúde da aplicação
+npm run health-check
+```
+
+#### Arquivos de Configuração
+
+- `koyeb.yaml` - Configuração do Koyeb (opcional)
+- `.env.example` - Template de variáveis
+- `scripts/health-check.js` - Verificação de saúde
 
 ### Configurações de Produção
 

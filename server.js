@@ -160,7 +160,7 @@ app.get('/', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 6543;
+const PORT = process.env.PORT || 8000;
 const HOST = process.env.HOST || '0.0.0.0';
 
 // Rota para lidar com rotas não encontradas
