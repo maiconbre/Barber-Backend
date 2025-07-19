@@ -25,25 +25,40 @@ const logServiceRequests = (req, res, next) => {
 // Aplicar middleware de logging a todas as rotas
 router.use(logServiceRequests);
 
-// Configuração do limitador de chamadas repetidas
-const repeatedRequestLimiter = limitRepeatedRequests({
-  maxRepeatedRequests: 3, // Limita a 3 chamadas idênticas
-  blockTimeMs: 300000, // Bloqueia por 5 minutos (300000ms)
+// Configurações otimizadas para diferentes tipos de operações
+const readLimiter = limitRepeatedRequests({
+  maxRepeatedRequests: 300, // Limite muito alto para serviços (dados estáticos)
+  burstLimit: 100, // Permite muitas rajadas para carregamento inicial
+  windowMs: 60000,
+  blockTimeMs: 30000, // Bloqueio muito curto para leitura de serviços
+  gracePeriodMs: 1000, // Período mínimo entre requisições
   message: {
     success: false,
-    message: 'Muitas requisições idênticas. Esta operação está temporariamente bloqueada.'
+    message: 'Muitas consultas de serviços. Aguarde um momento.'
   }
 });
 
-// Rotas públicas com limitador de chamadas repetidas
-router.get('/', repeatedRequestLimiter, serviceController.getAllServices);
-router.get('/barber/:barberId', repeatedRequestLimiter, serviceController.getServicesByBarber);
-router.get('/:id', repeatedRequestLimiter, serviceController.getServiceById);
+const writeLimiter = limitRepeatedRequests({
+  maxRepeatedRequests: 10, // Limite baixo para modificações de serviços
+  burstLimit: 3,
+  windowMs: 60000,
+  blockTimeMs: 180000, // Bloqueio maior para operações administrativas
+  gracePeriodMs: 5000,
+  message: {
+    success: false,
+    message: 'Muitas operações administrativas. Aguarde antes de tentar novamente.'
+  }
+});
 
-// Rotas protegidas (requerem autenticação) com limitador de chamadas repetidas
-router.post('/', authMiddleware.protect, repeatedRequestLimiter, serviceController.createService);
-router.patch('/:id', authMiddleware.protect, repeatedRequestLimiter, serviceController.updateService);
-router.delete('/:id', authMiddleware.protect, repeatedRequestLimiter, serviceController.deleteService);
-router.post('/:id/barbers', authMiddleware.protect, repeatedRequestLimiter, serviceController.associateBarbers);
+// Rotas públicas com limitador otimizado para leitura
+router.get('/', readLimiter, serviceController.getAllServices);
+router.get('/barber/:barberId', readLimiter, serviceController.getServicesByBarber);
+router.get('/:id', readLimiter, serviceController.getServiceById);
+
+// Rotas protegidas (requerem autenticação) com limitador para escrita
+router.post('/', authMiddleware.protect, writeLimiter, serviceController.createService);
+router.patch('/:id', authMiddleware.protect, writeLimiter, serviceController.updateService);
+router.delete('/:id', authMiddleware.protect, writeLimiter, serviceController.deleteService);
+router.post('/:id/barbers', authMiddleware.protect, writeLimiter, serviceController.associateBarbers);
 
 module.exports = router;

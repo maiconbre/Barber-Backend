@@ -145,6 +145,12 @@ O projeto segue o padrão **MVC (Model-View-Controller)** adaptado para APIs:
 - Cooldown configurável
 - Limpeza automática de cache
 
+#### 2. Limitação de Chamadas Repetidas (requestLimitMiddleware.js)
+- **Limite padrão**: 50 chamadas idênticas
+- **Bloqueio**: 5 minutos após exceder limite
+- **Identificação única**: Hash baseado em IP + método + URL + parâmetros + body
+- **Configuração por rota**: Limites específicos para diferentes endpoints
+
 ### Configurações de Segurança por Rota
 
 | Rota | Limite Repetidas | Tempo Bloqueio | Observação |
