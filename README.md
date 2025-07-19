@@ -308,15 +308,6 @@ npm run seed       # Executar seeds
 - Rastreamento de início e fim de operações
 - Identificação única por requisição
 
-### Exemplo de Log
-```
-[2024-01-15T10:30:45.123Z] [HTTP:1705312245123] GET /api/services - INÍCIO - IP: 192.168.1.100
-[2024-01-15T10:30:45.125Z] [SERVICE-ROUTE:1705312245125] GET /api/services - INÍCIO
-[2024-01-15T10:30:45.130Z] [SQL:sql-1705312245130-456] [TYPE:SELECT] SELECT * FROM Services
-[2024-01-15T10:30:45.135Z] [SQL:sql-1705312245130-456] [DURATION] 5ms
-[2024-01-15T10:30:45.140Z] [SERVICE-ROUTE:1705312245125] GET /api/services - FIM (status: 200)
-[2024-01-15T10:30:45.142Z] [HTTP:1705312245123] GET /api/services - FIM - Status: 200 - Duração: 19ms
-```
 
 ## 🚀 Deploy e Produção
 
