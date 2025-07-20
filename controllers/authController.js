@@ -25,7 +25,7 @@ exports.login = async (req, res) => {
   try {
     console.log('Corpo da requisição recebido:', req.body);
     
-    // Extrair username/username e password do corpo da requisição
+    // Verificar se o corpo da requisição contém username e password
     // Aceita {username, password} 
     const username = req.body.username ;
     const password = req.body.password;
@@ -34,7 +34,7 @@ exports.login = async (req, res) => {
       console.log('Credenciais incompletas:', { username, password });
       return res.status(400).json({
         success: false,
-        message: 'Username/username e senha são obrigatórios'
+        message: 'User e senha são obrigatórios'
       });
     }
     
