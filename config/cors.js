@@ -5,13 +5,13 @@
 
 const corsConfig = {
   development: {
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: ['http://localhost:5173'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
   },
   production: {
-    origin: ['https://barber-shop-ten-mu.vercel.app', 'https://barber.targetweb.tech', 'https://barber-shop-git-modal-fix-maiconbres-projects.vercel.app'],
+    origin: ['https://barber.targetweb.tech', 'https://barber-shop-git-modal-fix-maiconbres-projects.vercel.app'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
