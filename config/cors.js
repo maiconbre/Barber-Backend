@@ -11,7 +11,7 @@ const corsConfig = {
     credentials: true
   },
   production: {
-    origin: ['https://barber.targetweb.tech', 'https://barber-shop-git-modal-fix-maiconbres-projects.vercel.app'],
+    origin: ['https://barber.targetweb.tech','http://localhost:5173', 'https://barber-shop-git-modal-fix-maiconbres-projects.vercel.app'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
