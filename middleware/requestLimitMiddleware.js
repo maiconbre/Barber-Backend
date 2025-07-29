@@ -1,4 +1,7 @@
 const crypto = require('crypto');
+const { performance } = require('perf_hooks');
+const { logRateLimit, logSuspiciousActivity, logIPBlock } = require('./securityLogger');
+const rateLimitConfig = require('../config/rateLimits');
 
 // Armazenamento para controlar requisições repetidas
 const requestCache = new Map();
@@ -9,20 +12,26 @@ const userSessionCache = new Map();
  * Usa janelas de tempo deslizantes e detecção de padrões para otimizar UX
  */
 const limitRepeatedRequests = (options = {}) => {
-  // Configurações padrão otimizadas
+  // Configurações padrão otimizadas usando configuração centralizada
+  const defaultConfig = rateLimitConfig.global;
   const config = {
-    maxRepeatedRequests: options.maxRepeatedRequests || 100, // Limite base aumentado
-    burstLimit: options.burstLimit || 20, // Limite para rajadas rápidas
-    windowMs: options.windowMs || 60000, // Janela de 1 minuto
-    blockTimeMs: options.blockTimeMs || 120000, // Bloqueio reduzido para 2 minutos
-    gracePeriodMs: options.gracePeriodMs || 5000, // Período de graça de 5s
+    maxRepeatedRequests: options.maxRepeatedRequests || defaultConfig.maxRepeatedRequests,
+    burstLimit: options.burstLimit || defaultConfig.burstLimit,
+    windowMs: options.windowMs || defaultConfig.windowMs,
+    blockTimeMs: options.blockTimeMs || defaultConfig.blockTimeMs,
+    gracePeriodMs: options.gracePeriodMs || defaultConfig.gracePeriodMs,
     message: options.message || {
       success: false,
-      message: 'Muitas requisições em pouco tempo. Aguarde um momento antes de tentar novamente.'
+      message: 'Muitas requisições repetidas detectadas. Acesso temporariamente bloqueado.'
     }
   };
 
   return (req, res, next) => {
+    // Permitir requisições OPTIONS (preflight CORS) sem limitação
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
+    
     const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     const now = Date.now();
     
@@ -102,6 +111,15 @@ const limitRepeatedRequests = (options = {}) => {
     // Verifica se está bloqueado
     if (record.blocked && now < record.blockExpires) {
       const remainingTime = Math.ceil((record.blockExpires - now) / 1000);
+      
+      // Log do bloqueio ativo
+      logRateLimit(req, {
+        requestCount: record.count,
+        timeWindow: now - record.firstRequest,
+        blockDuration: remainingTime * 1000,
+        reason: 'REQUEST_BLOCKED_ACTIVE'
+      });
+      
       return res.status(429).json({
         success: false,
         message: `Aguarde ${remainingTime}s antes de tentar novamente.`,
@@ -139,6 +157,26 @@ const limitRepeatedRequests = (options = {}) => {
       record.blocked = true;
       record.blockExpires = now + config.blockTimeMs;
       requestCache.set(requestKey, record);
+      
+      // Log do bloqueio aplicado
+      logRateLimit(req, {
+        requestCount: record.count,
+        timeWindow: config.windowMs,
+        blockDuration: config.blockTimeMs,
+        reason: blockReason
+      });
+      
+      if (!session.isLegitimate) {
+        logSuspiciousActivity(req, {
+          pattern: 'RATE_LIMIT_EXCEEDED',
+          details: {
+            repetitionRatio,
+            avgInterval,
+            recentRequests,
+            reason: blockReason
+          }
+        });
+      }
       
       return res.status(429).json({
         success: false,
