@@ -20,6 +20,7 @@ const barberRoutes = require('./routes/barberRoutes');
 const commentRoutes = require('./routes/commentRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
+const securityRoutes = require('./routes/securityRoutes');
 
 const app = express();
 
@@ -32,13 +33,8 @@ app.use(cors(corsConfig));
 // Middleware para processar JSON
 app.use(express.json());
 
-// Middleware para adicionar headers de segurança
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  next();
-});
+// Middleware para adicionar headers de segurança (removido CORS manual para evitar conflitos)
+// O CORS é gerenciado pela configuração do express-cors acima
 
 // Middleware global para logar todas as requisições HTTP
 app.use((req, res, next) => {
@@ -87,6 +83,9 @@ app.use('/api/appointments', appointmentRoutes);
 
 // Rotas de serviços
 app.use('/api/services', serviceRoutes);
+
+// Rotas de segurança (apenas admin)
+app.use('/api/security', securityRoutes);
 
 // Rota principal para documentação da API
 app.get('/', (req, res) => {
@@ -154,6 +153,15 @@ app.get('/', (req, res) => {
           'PATCH /:id': 'Atualizar serviço (requer autenticação)',
           'DELETE /:id': 'Excluir serviço (requer autenticação)',
           'POST /:id/barbers': 'Associar barbeiros a um serviço (requer autenticação)'
+        }
+      },
+      security: {
+        base: '/api/security',
+        routes: {
+          'GET /report': 'Relatório de segurança (requer autenticação de admin)',
+          'GET /logs': 'Logs de segurança detalhados (requer autenticação de admin)',
+          'DELETE /logs/cleanup': 'Limpar logs antigos (requer autenticação de admin)',
+          'GET /stats/realtime': 'Estatísticas em tempo real (requer autenticação de admin)'
         }
       }
     }

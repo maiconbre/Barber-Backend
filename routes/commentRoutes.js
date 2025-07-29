@@ -3,12 +3,12 @@ const router = express.Router();
 const Comment = require('../models/Comment');
 const { protect, admin } = require('../middleware/authMiddleware');
 const { limitRepeatedRequests } = require('../middleware/requestLimitMiddleware');
+const rateLimitConfig = require('../config/rateLimits');
 
 // Configuração do limitador de chamadas repetidas para comentários
 // Mais restritivo para criação de comentários para evitar spam
 const commentLimiter = limitRepeatedRequests({
-  maxRepeatedRequests: 2, // Limita a 2 chamadas idênticas
-  blockTimeMs: 600000, // Bloqueia por 10 minutos (600000ms)
+  ...rateLimitConfig.comments.create,
   message: {
     success: false,
     message: 'Muitas requisições idênticas. Esta operação está temporariamente bloqueada.'
@@ -16,9 +16,9 @@ const commentLimiter = limitRepeatedRequests({
 });
 
 // Configuração do limitador para leitura de comentários
+// Configuração mais permissiva para leitura
 const commentReadLimiter = limitRepeatedRequests({
-  maxRepeatedRequests: 3, // Limita a 3 chamadas idênticas
-  blockTimeMs: 300000, // Bloqueia por 5 minutos (300000ms)
+  ...rateLimitConfig.comments.read,
   message: {
     success: false,
     message: 'Muitas requisições idênticas. Esta operação está temporariamente bloqueada.'
