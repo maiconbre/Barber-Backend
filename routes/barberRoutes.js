@@ -34,12 +34,32 @@ const writeLimiter = limitRepeatedRequests({
 // Rota para listar todos os barbeiros com limitador otimizado para leitura
 router.get('/', readLimiter, async (req, res) => {
   try {
+    // Buscar todos os barbeiros
     const barbers = await Barber.findAll();
+    
+    // Buscar todos os usuários com role 'barber'
+    const users = await User.findAll({
+      where: { role: 'barber' }
+    });
+    
+    // Mapear os barbeiros para incluir o username
+    const barbersWithUsername = barbers.map(barber => {
+      const user = users.find(u => u.id === barber.id);
+      return {
+        id: barber.id,
+        name: barber.name,
+        username: user ? user.username : null,
+        whatsapp: barber.whatsapp,
+        pix: barber.pix
+      };
+    });
+    
     res.json({
       success: true,
-      data: barbers
+      data: barbersWithUsername
     });
   } catch (error) {
+    console.error('Erro ao listar barbeiros:', error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -53,22 +73,25 @@ router.get('/:id', readLimiter, async (req, res) => {
     const { id } = req.params;
     const formattedId = String(id).padStart(2, '0');
     
-    // Buscar barbeiro
+    // Buscar barbeiro e usuário associado
     const barber = await Barber.findByPk(formattedId);
+    const user = await User.findByPk(formattedId);
     
     // Log para debug
     console.log('Busca por barbeiro:', {
       idBuscado: formattedId,
-      barbeiro: barber ? 'Encontrado' : 'Não encontrado'
+      barbeiro: barber ? 'Encontrado' : 'Não encontrado',
+      usuario: user ? 'Encontrado' : 'Não encontrado'
     });
 
-    // Se encontrou o barbeiro, retornar os dados mesmo sem usuário
+    // Se encontrou o barbeiro, retornar os dados
     if (barber) {
       return res.json({
         success: true,
         data: {
           id: barber.id,
           name: barber.name,
+          username: user ? user.username : null,
           whatsapp: barber.whatsapp,
           pix: barber.pix
         }
@@ -220,6 +243,7 @@ router.post('/', writeLimiter, async (req, res) => {
       data: {
         id: barber.id,
         name: barber.name,
+        username: user.username,
         whatsapp: barber.whatsapp,
         pix: barber.pix
       }
@@ -253,10 +277,8 @@ router.delete('/:id', writeLimiter, async (req, res) => {
       where: { barberId: formattedId }
     });
 
-    // Buscar e excluir o usuário pelo nome
-    const user = await User.findOne({
-      where: { name: barber.name }
-    });
+    // Buscar e excluir o usuário pelo ID
+    const user = await User.findByPk(formattedId);
 
     if (user) {
       await user.destroy();

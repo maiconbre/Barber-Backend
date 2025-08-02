@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+// node-fetch v3 é um módulo ESM, não podemos usar require diretamente
+// Vamos importá-lo dinamicamente quando necessário
 require('dotenv').config();
 
 const sequelize = require('./models/database');
@@ -21,6 +23,7 @@ const commentRoutes = require('./routes/commentRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const securityRoutes = require('./routes/securityRoutes');
+const qrCodeRoutes = require('./routes/qrCodeRoutes');
 
 const app = express();
 
@@ -30,8 +33,9 @@ const corsConfig = require('./config/cors');
 // Configuração do CORS baseada no ambiente atual
 app.use(cors(corsConfig));
 
-// Middleware para processar JSON
-app.use(express.json());
+// Middleware para processar JSON com limite aumentado para 15MB
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
 // Middleware para adicionar headers de segurança (removido CORS manual para evitar conflitos)
 // O CORS é gerenciado pela configuração do express-cors acima
@@ -86,6 +90,9 @@ app.use('/api/services', serviceRoutes);
 
 // Rotas de segurança (apenas admin)
 app.use('/api/security', securityRoutes);
+
+// Rotas de QR codes
+app.use('/api/qr-codes', qrCodeRoutes);
 
 // Rota principal para documentação da API
 app.get('/', (req, res) => {
@@ -163,12 +170,20 @@ app.get('/', (req, res) => {
           'DELETE /logs/cleanup': 'Limpar logs antigos (requer autenticação de admin)',
           'GET /stats/realtime': 'Estatísticas em tempo real (requer autenticação de admin)'
         }
+      },
+      qrCodes: {
+        base: '/api/qr-codes',
+        routes: {
+          'POST /upload': 'Upload de QR code SVG para barbeiro',
+          'GET /list': 'Listar todos os QR codes disponíveis',
+          'DELETE /:filename': 'Deletar QR code específico'
+        }
       }
     }
   });
 });
 
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 6543;
 const HOST = process.env.HOST || '0.0.0.0';
 
 // Rota para lidar com rotas não encontradas
@@ -178,6 +193,74 @@ app.use('*', (req, res) => {
     message: 'Rota não encontrada'
   });
 });
+
+// Função para verificar e criar o bucket do Supabase se necessário
+const checkSupabaseBucket = async () => {
+  try {
+    console.log('Verificando bucket do Supabase para QR codes...');
+    // Usando axios em vez de fetch para evitar problemas com ESM
+    const axios = require('axios');
+    const { createClient } = require('@supabase/supabase-js');
+    
+    // Configuração do cliente Supabase diretamente
+    const supabaseUrl = process.env.VITE_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Erro: Variáveis de ambiente do Supabase não configuradas');
+      return false;
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const QR_BUCKET = 'qr-codes';
+    
+    // Verificar se o bucket existe
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    
+    if (listError) {
+      console.error('Erro ao listar buckets do Supabase:', listError);
+      return false;
+    }
+    
+    const bucketExists = buckets.some(bucket => bucket.name === QR_BUCKET);
+    
+    if (!bucketExists) {
+      // Criar o bucket se não existir
+      const { data, error: createError } = await supabase.storage.createBucket(QR_BUCKET, {
+        public: true,
+        fileSizeLimit: 15728640 // 15MB em bytes
+      });
+      
+      if (createError) {
+        console.error('Erro ao criar bucket:', createError);
+        return false;
+      }
+      
+      console.log(`Bucket ${QR_BUCKET} criado com sucesso`);
+    } else {
+      // Atualizar o bucket existente
+      try {
+        const { data: updateData, error: updateError } = await supabase.storage.updateBucket(QR_BUCKET, {
+          public: true,
+          fileSizeLimit: 15728640 // 15MB em bytes
+        });
+        
+        if (updateError) {
+          console.error('Aviso: Não foi possível atualizar o limite do bucket:', updateError);
+        } else {
+          console.log(`Bucket ${QR_BUCKET} atualizado com sucesso`);
+        }
+      } catch (updateErr) {
+        console.error('Erro ao tentar atualizar o bucket:', updateErr);
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Erro ao verificar bucket do Supabase:', error);
+    return false;
+  }
+};
 
 // Inicialização do banco de dados e do servidor
 const initDatabase = async () => {
@@ -195,9 +278,16 @@ const initDatabase = async () => {
     }
 
     // Inicia o servidor utilizando o HOST e PORT definidos
-    app.listen(PORT, HOST, () => {
+    const server = app.listen(PORT, HOST, () => {
       console.log(`Servidor rodando em http://localhost:${PORT}`);
+      
+      // Verificar e criar bucket do Supabase após o servidor iniciar
+      setTimeout(async () => {
+        await checkSupabaseBucket();
+      }, 1000); // Pequeno delay para garantir que o servidor esteja pronto
     });
+    
+    return server;
   } catch (error) {
     console.error('Erro ao inicializar o banco de dados:', error);
   }
